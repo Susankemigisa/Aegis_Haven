@@ -708,6 +708,74 @@
   animation: AegisApp_fadeUp__Wx11f 0.3s ease;
 }
 
+/* ══════════════════════════════════════════════════
+   COLLAPSIBLE BANNERS + SIDEBAR TOOLS
+   ══════════════════════════════════════════════════ */
+
+/* Wrapper */
+.AegisApp_bannersWrap__uD3q3 {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+/* Always-visible strip */
+.AegisApp_bannersStrip__OyiK_ {
+  width: 100%;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 16px;
+  background: transparent; border: none; cursor: pointer;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 12px; color: var(--t3);
+  transition: background 0.15s;
+  text-align: left;
+  border-bottom: 1px solid transparent;
+}
+.AegisApp_bannersStrip__OyiK_:hover { background: var(--surface2); }
+.AegisApp_bannersStripOpen__f19ui {
+  border-bottom-color: var(--border);
+  color: var(--t2);
+}
+.AegisApp_bannersStripLeft__sZeNg {
+  display: flex; align-items: center; gap: 8px;
+}
+.AegisApp_bannersStripDot__UFxSe {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--warn-border); flex-shrink: 0;
+  box-shadow: 0 0 5px var(--warn-border);
+  animation: AegisApp_pulse__1ejT7 2s infinite;
+}
+.AegisApp_bannersStrip__OyiK_ strong { color: var(--warn-t); }
+.AegisApp_bannersStripChevron__Xhwy3 { font-size: 9px; color: var(--t3); flex-shrink: 0; }
+
+/* Expanded banners (unchanged styling) */
+.AegisApp_banners__decnN {
+  padding: 8px 16px;
+  display: flex; flex-direction: column; gap: 6px;
+  animation: AegisApp_fadeUp__Wx11f 0.2s ease;
+}
+
+/* Sidebar tool buttons */
+.AegisApp_sidebarToolBtn__tUijy {
+  width: 100%;
+  display: flex; align-items: center; gap: 9px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  color: var(--t2);
+  padding: 10px 12px;
+  border-radius: 9px;
+  font-size: 12.5px; font-weight: 500;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  cursor: pointer; transition: all 0.15s;
+  margin-bottom: 7px;
+  text-align: left;
+}
+.AegisApp_sidebarToolBtn__tUijy:hover {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 /*!********************************************************************************************************************************************************************************************************************************************************************************!*\
   !*** css ./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[13].oneOf[7].use[2]!./node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[13].oneOf[7].use[3]!./src/components/SafetyPlan.module.css ***!
   \********************************************************************************************************************************************************************************************************************************************************************************/

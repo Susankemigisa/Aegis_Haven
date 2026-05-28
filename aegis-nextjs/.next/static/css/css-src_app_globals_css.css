@@ -111,6 +111,13 @@
   --shadow:      rgba(60,20,100,0.1);
 }
 
+html {
+  /* html carries the background so the blocking script's data-theme
+     takes effect before body is painted — eliminates all flash */
+  background: var(--bg);
+  height: 100%;
+}
+
 html, body {
   height: 100%;
   font-family: 'Bricolage Grotesque', sans-serif;

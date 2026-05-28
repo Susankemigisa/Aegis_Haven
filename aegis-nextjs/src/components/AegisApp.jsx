@@ -140,33 +140,116 @@ Emergency contacts always available:
 }
 
 export default function AegisApp() {
+  // ── FIX 1 & 2: Read persisted preferences from localStorage on first render ──
   const [theme,         setTheme]        = useState("dark")
   const [lang,          setLang]         = useState("en")
+  const [demoMode,      setDemoMode]     = useState(false)
+  const [hydrated,      setHydrated]     = useState(false)
+
   const [messages,      setMessages]     = useState([])
   const [input,         setInput]        = useState("")
   const [loading,       setLoading]      = useState(false)
   const [streaming,     setStreaming]     = useState("")
   const [sidebarOpen,   setSidebarOpen]  = useState(false)
-  const [showSugg,      setShowSugg]     = useState(true)
   const [panicOpen,     setPanicOpen]    = useState(false)
   const [dangerAlert,   setDangerAlert]  = useState(null)
   const [showPlan,      setShowPlan]     = useState(false)
   const [showRights,    setShowRights]   = useState(false)
   const [isOffline,     setIsOffline]    = useState(false)
-  const [demoMode,      setDemoMode]     = useState(false)  // DAY 3
-  const [feedback,      setFeedback]     = useState({})     // DAY 3
-  const [demoBanner,    setDemoBanner]   = useState(false)  // DAY 3
+  const [feedback,      setFeedback]     = useState({})
+  const [demoBanner,    setDemoBanner]   = useState(false)
+  // Banners: open by default, auto-collapse once user starts chatting
+  // We compute this from messages so it's always correct after restore
+  const [bannersOpen,   setBannersOpen]  = useState(true)
+  const [bannersManual, setBannersManual] = useState(false) // user explicitly toggled
   const chatRef  = useRef(null)
   const inputRef = useRef(null)
+  const prevLang    = useRef(null)
+  const userHasSent = useRef(false)  // tracks if user has sent in this session
+
+  // Hydrate from localStorage once on mount — restores theme, lang, demo mode AND messages
+  useEffect(() => {
+    try {
+      const savedTheme    = localStorage.getItem("aegis_theme")
+      const savedLang     = localStorage.getItem("aegis_lang")
+      const savedDemo     = localStorage.getItem("aegis_demo")
+      const savedMessages = localStorage.getItem("aegis_messages")
+
+      const resolvedLang = savedLang || "en"
+      if (savedTheme) setTheme(savedTheme)
+      if (savedLang)  setLang(savedLang)
+      if (savedDemo)  setDemoMode(savedDemo === "true")
+
+      if (savedMessages) {
+        try {
+          const parsed = JSON.parse(savedMessages)
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setMessages(parsed)
+            prevLang.current = resolvedLang // mark lang as already initialised
+            // If restored messages contain user messages, mark as already sent
+            if (parsed.some(m => m.role === "user")) userHasSent.current = true
+          } else {
+            // Empty array saved — set greeting for resolved lang
+            prevLang.current = resolvedLang
+            setMessages([{ role: "assistant", content: T[resolvedLang].greetingBot }])
+          }
+        } catch (_) {
+          prevLang.current = resolvedLang
+          setMessages([{ role: "assistant", content: T[resolvedLang].greetingBot }])
+        }
+      } else {
+        // First ever visit — set greeting for resolved lang
+        prevLang.current = resolvedLang
+        setMessages([{ role: "assistant", content: T[resolvedLang].greetingBot }])
+      }
+    } catch (_) {
+      setMessages([{ role: "assistant", content: T["en"].greetingBot }])
+    }
+    setHydrated(true)
+  }, [])
+
+  // Persist theme
+  useEffect(() => {
+    if (!hydrated) return
+    try { localStorage.setItem("aegis_theme", theme) } catch (_) {}
+    document.documentElement.setAttribute("data-theme", theme)
+  }, [theme, hydrated])
+
+  // Persist lang
+  useEffect(() => {
+    if (!hydrated) return
+    try { localStorage.setItem("aegis_lang", lang) } catch (_) {}
+  }, [lang, hydrated])
+
+  // Persist demoMode
+  useEffect(() => {
+    if (!hydrated) return
+    try { localStorage.setItem("aegis_demo", String(demoMode)) } catch (_) {}
+  }, [demoMode, hydrated])
 
   const t = T[lang]
 
-  // Init greeting
+  // Init greeting only when lang actually changes (not on every render)
   useEffect(() => {
-    setMessages([{ role: "assistant", content: t.greetingBot }])
+    if (prevLang.current === lang) return
+    prevLang.current = lang
+    setMessages([{ role: "assistant", content: T[lang].greetingBot }])
   }, [lang])
 
-  // Theme
+  // Persist messages whenever they change
+  useEffect(() => {
+    if (!hydrated || messages.length === 0) return
+    try { localStorage.setItem("aegis_messages", JSON.stringify(messages)) } catch (_) {}
+  }, [messages, hydrated])
+
+  // Auto-collapse banners once the user has sent a message (unless they manually opened them)
+  useEffect(() => {
+    if (!bannersManual && messages.some(m => m.role === "user")) {
+      setBannersOpen(false)
+    }
+  }, [messages, bannersManual])
+
+  // Apply theme on mount before hydration (avoids flash)
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme)
   }, [theme])
@@ -221,7 +304,7 @@ export default function AegisApp() {
     const msg = (text || input).trim()
     if (!msg || loading) return
     setInput("")
-    setShowSugg(false)
+    userHasSent.current = true
 
     // Danger detection
     const danger = detectDanger(msg)
@@ -288,8 +371,9 @@ export default function AegisApp() {
   }
 
   const clearChat = () => {
-    setMessages([{ role: "assistant", content: t.greetingBot }])
-    setShowSugg(true)
+    const fresh = [{ role: "assistant", content: t.greetingBot }]
+    setMessages(fresh)
+    try { localStorage.setItem("aegis_messages", JSON.stringify(fresh)) } catch (_) {}
     setSidebarOpen(false)
     setDangerAlert(null)
     setFeedback({})
@@ -412,27 +496,44 @@ export default function AegisApp() {
         </div>
       </header>
 
-      {/* ── BANNERS ── */}
-      <div className={styles.banners}>
-        <div className={styles.bannerWarn}>
-          <span className={styles.bannerTitle}>{t.warnTitle}</span>
-          <span className={styles.bannerBody}>
-            {lang === "en" && <>In immediate danger? Call <strong>Police 999</strong> or <strong>112</strong> now. No personal data is stored. Use incognito mode for extra privacy. Press <kbd>ESC</kbd> to exit instantly.</>}
-            {lang === "lg" && <>Oli mu kabi kati? Yita <strong>Abapoliisi 999</strong> oba <strong>112</strong> leero. Tewali makumaoku agakuumibwa. Kozesa mode ya private. Nyiga <kbd>ESC</kbd> okufuluma amangu.</>}
-            {lang === "sw" && <>Uko katika hatari sasa hivi? Piga simu <strong>Polisi 999</strong> au <strong>112</strong> sasa. Hakuna data ya kibinafsi inayohifadhiwa. Tumia mode ya faragha. Bonyeza <kbd>ESC</kbd> kutoka mara moja.</>}
+      {/* ── BANNERS — collapsible once chat starts ── */}
+      <div className={styles.bannersWrap}>
+        {/* Always-visible collapsed strip */}
+        <button
+          className={`${styles.bannersStrip} ${bannersOpen ? styles.bannersStripOpen : ""}`}
+          onClick={() => { setBannersManual(true); setBannersOpen(o => !o) }}
+        >
+          <span className={styles.bannersStripLeft}>
+            <span className={styles.bannersStripDot} />
+            <span>⚠️ Not an emergency service &nbsp;·&nbsp; 🚨 Police: <strong>999</strong> &nbsp;·&nbsp; FIDA: <strong>0800 111 511</strong></span>
           </span>
-        </div>
-        <div className={styles.bannerEmg}>
-          <span className={styles.bannerTitle}>{t.emgTitle}</span>
-          <div className={styles.contactGrid}>
-            {EMERGENCY_CONTACTS.map(c => (
-              <a key={c.num} href={`tel:${c.num.replace(/\s/g,"")}`} className={styles.contact}>
-                <span className={styles.badge}>{c.num}</span>
-                <span>{c.label[lang]}</span>
-              </a>
-            ))}
+          <span className={styles.bannersStripChevron}>{bannersOpen ? "▲" : "▼"}</span>
+        </button>
+
+        {/* Expandable full banners */}
+        {bannersOpen && (
+          <div className={styles.banners}>
+            <div className={styles.bannerWarn}>
+              <span className={styles.bannerTitle}>{t.warnTitle}</span>
+              <span className={styles.bannerBody}>
+                {lang === "en" && <>In immediate danger? Call <strong>Police 999</strong> or <strong>112</strong> now. No personal data is stored. Use incognito mode for extra privacy. Press <kbd>ESC</kbd> to exit instantly.</>}
+                {lang === "lg" && <>Oli mu kabi kati? Yita <strong>Abapoliisi 999</strong> oba <strong>112</strong> leero. Tewali makumaoku agakuumibwa. Kozesa mode ya private. Nyiga <kbd>ESC</kbd> okufuluma amangu.</>}
+                {lang === "sw" && <>Uko katika hatari sasa hivi? Piga simu <strong>Polisi 999</strong> au <strong>112</strong> sasa. Hakuna data ya kibinafsi inayohifadhiwa. Tumia mode ya faragha. Bonyeza <kbd>ESC</kbd> kutoka mara moja.</>}
+              </span>
+            </div>
+            <div className={styles.bannerEmg}>
+              <span className={styles.bannerTitle}>{t.emgTitle}</span>
+              <div className={styles.contactGrid}>
+                {EMERGENCY_CONTACTS.map(c => (
+                  <a key={c.num} href={`tel:${c.num.replace(/\s/g,"")}`} className={styles.contact}>
+                    <span className={styles.badge}>{c.num}</span>
+                    <span>{c.label[lang]}</span>
+                  </a>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* ── BODY ── */}
@@ -489,25 +590,23 @@ export default function AegisApp() {
               </div>
             </section>
 
+            {/* Safety tools — moved from toolbar into sidebar */}
+            <section className={styles.sidebarSection}>
+              <h3>Safety Tools</h3>
+              <button className={styles.sidebarToolBtn} onClick={() => { setShowPlan(true); setSidebarOpen(false) }}>
+                📋 Safety Planning Checklist
+              </button>
+              <button className={styles.sidebarToolBtn} onClick={() => { setShowRights(true); setSidebarOpen(false) }}>
+                ⚖️ Know Your Rights Cards
+              </button>
+            </section>
+
             <button className={styles.clearBtn} onClick={clearChat}>{t.clearChat}</button>
           </div>
         </aside>
 
         {/* CHAT */}
         <div className={styles.chatCol}>
-
-          {/* DAY 2 — Quick access toolbar */}
-          <div className={styles.toolbar}>
-            <button className={styles.toolBtn} onClick={() => setShowPlan(true)}>
-              📋 Safety Plan
-            </button>
-            <button className={styles.toolBtn} onClick={() => setShowRights(true)}>
-              ⚖️ Know Your Rights
-            </button>
-            {demoMode && (
-              <span className={styles.demoChip}>🎭 Demo Mode Active</span>
-            )}
-          </div>
 
           <div className={styles.chatMessages} ref={chatRef}>
             {messages.map((m, i) => (
@@ -569,8 +668,8 @@ export default function AegisApp() {
             )}
           </div>
 
-          {/* SUGGESTIONS */}
-          {showSugg && (
+          {/* SUGGESTIONS — shown only when user hasn't sent anything this session */}
+          {!userHasSent.current && (
             <div className={styles.suggestions}>
               <p className={styles.suggLabel}>{t.suggLabel}</p>
               <div className={styles.suggGrid}>
