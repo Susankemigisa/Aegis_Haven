@@ -1,0 +1,30 @@
+# Ignore everything in parent directories
+../../*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+*.env
+
+# Streamlit
+.streamlit/
+
+# Knowledge base (will download from GitHub anyway)
+knowledge_base/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+
+# Don't ignore current directory
+!../domestic-violence-bot/**
