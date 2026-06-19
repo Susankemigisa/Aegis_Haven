@@ -1,0 +1,149 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── DARK THEME (default) ── */
+:root {
+  --bg:          #080C12;
+  --surface:     #0D1320;
+  --surface2:    #111A2B;
+  --surface3:    #162235;
+  --border:      #1A2840;
+  --border2:     #1F3050;
+
+  --t1:          #E2F0FF;
+  --t2:          #6E9DBF;
+  --t3:          #334D66;
+
+  /* Unusual accent — electric violet-teal */
+  --accent:      #7B6EFA;
+  --accent2:     #5A4FD6;
+  --accent-glow: #7B6EFA22;
+  --accent-alt:  #2ECFCF;
+
+  --user-bg:     #1B0F3A;
+  --user-border: #6B4FD8;
+  --user-t:      #DDD4FF;
+
+  --bot-bg:      #0D1826;
+  --bot-border:  #7B6EFA35;
+  --bot-t:       #C8DFF5;
+
+  --warn-bg:     #140C00;
+  --warn-border: #A86F00;
+  --warn-t:      #FFB830;
+  --warn-b:      #E8A820;
+
+  --emg-bg:      #030D14;
+  --emg-border:  #0A6B7A;
+  --emg-t:       #2ED8E8;
+  --emg-b:       #A8EEF5;
+
+  --badge-bg:    #0A3540;
+  --badge-t:     #2ED8E8;
+
+  --sugg-bg:     #0F1A2C;
+  --sugg-hover:  #151F30;
+  --sugg-t:      #5E85A8;
+
+  --footer-bg:   #07090F;
+  --footer-t:    #2A3D52;
+  --footer-acc:  #7B6EFA;
+
+  --scrollbar:   #1A2840;
+  --input-bg:    #0D1422;
+  --input-focus: #7B6EFA;
+  --shadow:      rgba(0,0,0,0.6);
+}
+
+/* ── LIGHT THEME ── */
+[data-theme="light"] {
+  --bg:          #F0EBF8;
+  --surface:     #FAF7FF;
+  --surface2:    #F4EFFC;
+  --surface3:    #EDE6FA;
+  --border:      #D8CCEE;
+  --border2:     #C4B4E4;
+
+  --t1:          #1A0F30;
+  --t2:          #5A4880;
+  --t3:          #A090C0;
+
+  /* Unusual accent — deep plum + coral gold */
+  --accent:      #6B3FA0;
+  --accent2:     #4E2E78;
+  --accent-glow: #6B3FA018;
+  --accent-alt:  #D4608C;
+
+  --user-bg:     #4A2280;
+  --user-border: #5A2E94;
+  --user-t:      #F5EEFF;
+
+  --bot-bg:      #FFFFFF;
+  --bot-border:  #C8A8E8;
+  --bot-t:       #1A0F30;
+
+  --warn-bg:     #FFF8E6;
+  --warn-border: #D4900A;
+  --warn-t:      #7A4400;
+  --warn-b:      #5C3000;
+
+  --emg-bg:      #E8F8FA;
+  --emg-border:  #0A8898;
+  --emg-t:       #005060;
+  --emg-b:       #003840;
+
+  --badge-bg:    #CCF0F5;
+  --badge-t:     #004858;
+
+  --sugg-bg:     #F0E8FA;
+  --sugg-hover:  #E8DCFA;
+  --sugg-t:      #7055A0;
+
+  --footer-bg:   #EDE6FA;
+  --footer-t:    #9080B8;
+  --footer-acc:  #6B3FA0;
+
+  --scrollbar:   #C4B4E4;
+  --input-bg:    #FFFFFF;
+  --input-focus: #6B3FA0;
+  --shadow:      rgba(60,20,100,0.1);
+}
+
+html {
+  /* html carries the background so the blocking script's data-theme
+     takes effect before body is painted — eliminates all flash */
+  background: var(--bg);
+  height: 100%;
+}
+
+html, body {
+  height: 100%;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  background: var(--bg);
+  color: var(--t1);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 4px; }
+
+/* Animations */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0.55); opacity: 0.35; }
+  40%            { transform: scale(1);    opacity: 1; }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
