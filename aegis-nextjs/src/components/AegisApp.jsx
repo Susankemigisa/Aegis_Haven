@@ -165,7 +165,11 @@ export default function AegisApp() {
   const chatRef  = useRef(null)
   const inputRef = useRef(null)
   const prevLang    = useRef(null)
-  const userHasSent = useRef(false)  // tracks if user has sent in this session
+  const [userHasSent, setUserHasSent] = useState(false)
+  // FIX: sample questions are now a persistent popup button instead of a one-shot grid
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false)
+  // FIX: sidebar is now organised into tabbed "pages" instead of one long crowded list
+  const [sidebarTab, setSidebarTab] = useState("settings")
 
   // Hydrate from localStorage once on mount — restores theme, lang, demo mode AND messages
   useEffect(() => {
@@ -187,7 +191,7 @@ export default function AegisApp() {
             setMessages(parsed)
             prevLang.current = resolvedLang // mark lang as already initialised
             // If restored messages contain user messages, mark as already sent
-            if (parsed.some(m => m.role === "user")) userHasSent.current = true
+            if (parsed.some(m => m.role === "user")) setUserHasSent(true)
           } else {
             // Empty array saved — set greeting for resolved lang
             prevLang.current = resolvedLang
@@ -304,7 +308,8 @@ export default function AegisApp() {
     const msg = (text || input).trim()
     if (!msg || loading) return
     setInput("")
-    userHasSent.current = true
+    setUserHasSent(true)
+    setSuggestionsOpen(false)
 
     // Danger detection
     const danger = detectDanger(msg)
@@ -377,6 +382,8 @@ export default function AegisApp() {
     setSidebarOpen(false)
     setDangerAlert(null)
     setFeedback({})
+    setUserHasSent(false)
+    setSuggestionsOpen(false)
   }
 
   return (
@@ -543,73 +550,111 @@ export default function AegisApp() {
         <aside className={`${styles.sidebar} ${sidebarOpen ? styles.sidebarOpen : ""}`}>
           <div className={styles.sidebarInner}>
 
-            <section className={styles.sidebarSection}>
-              <h3>Configuration</h3>
-              <p className={styles.sidebarNote}>Add <code>ANTHROPIC_API_KEY</code> to <code>.env.local</code> to activate live AI responses.</p>
-              <div className={styles.ragBadge}><span className={styles.ragDot} />8 knowledge chunks loaded</div>
-            </section>
+            {/* Sidebar nav — split the crowded list into pages */}
+            <nav className={styles.sidebarNav}>
+              <button className={`${styles.sidebarNavBtn} ${sidebarTab === "tools" ? styles.sidebarNavActive : ""}`} onClick={() => setSidebarTab("tools")}>🧰 Tools</button>
+              <button className={`${styles.sidebarNavBtn} ${sidebarTab === "settings" ? styles.sidebarNavActive : ""}`} onClick={() => setSidebarTab("settings")}>⚙️ Settings</button>
+              <button className={`${styles.sidebarNavBtn} ${sidebarTab === "team" ? styles.sidebarNavActive : ""}`} onClick={() => setSidebarTab("team")}>👥 Team</button>
+              <button className={`${styles.sidebarNavBtn} ${sidebarTab === "ethics" ? styles.sidebarNavActive : ""}`} onClick={() => setSidebarTab("ethics")}>🧭 Ethics</button>
+            </nav>
 
-            {/* DAY 3 — Demo mode toggle */}
-            <section className={styles.sidebarSection}>
-              <h3>Demo Mode</h3>
-              <p className={styles.sidebarNote}>Run a full presentation without an API key. Uses pre-written realistic responses.</p>
-              <button className={`${styles.demoToggle} ${demoMode ? styles.demoOn : ""}`} onClick={toggleDemo}>
-                <span className={styles.demoToggleDot} />
-                {demoMode ? "🎭 Demo ON — click to disable" : "🔌 Demo OFF — click to enable"}
-              </button>
-            </section>
-
-            <section className={styles.sidebarSection}>
-              <h3>Tracy — AI & Chatbot</h3>
-              <p className={styles.sidebarNote}>Claude API, trauma-informed system prompt, RAG pipeline, streaming responses.</p>
-            </section>
-
-            <section className={styles.sidebarSection}>
-              <h3>Joseline — Knowledge Base</h3>
-              <p className={styles.sidebarNote}>8 verified chunks from Uganda DV Act 2010, NGO reports, support organisation contacts.</p>
-              <div className={styles.chunkList}>
-                {["What is DV","Types of abuse","Who is protected","Victim rights","Reporting","Support orgs","Penalties","Myths vs facts"].map(c => (
-                  <span className={styles.chunk} key={c}>{c}</span>
-                ))}
+            {sidebarTab === "tools" && (
+              <div className={styles.sidebarPage}>
+                <section className={styles.sidebarSection}>
+                  <h3>Safety Tools</h3>
+                  <button className={styles.sidebarToolBtn} onClick={() => { setShowPlan(true); setSidebarOpen(false) }}>
+                    📋 Safety Planning Checklist
+                  </button>
+                  <button className={styles.sidebarToolBtn} onClick={() => { setShowRights(true); setSidebarOpen(false) }}>
+                    ⚖️ Know Your Rights Cards
+                  </button>
+                  <button className={styles.sidebarToolBtn} onClick={() => { setSuggestionsOpen(true); setSidebarOpen(false) }}>
+                    💡 Sample Questions
+                  </button>
+                  <button className={styles.sidebarToolBtn} onClick={() => { setPanicOpen(true); setSidebarOpen(false) }}>
+                    🆘 I Need Help Right Now
+                  </button>
+                </section>
               </div>
-            </section>
+            )}
 
-            <section className={styles.sidebarSection}>
-              <h3>Suzan — UX & Ethics</h3>
-              <p className={styles.sidebarNote}>Danger detection, panic button, multilingual UI (EN/LG/SW), safety plan checklist, rights cards, offline fallback, demo mode, feedback system.</p>
-            </section>
+            {sidebarTab === "settings" && (
+              <div className={styles.sidebarPage}>
+                <section className={styles.sidebarSection}>
+                  <h3>Configuration</h3>
+                  <p className={styles.sidebarNote}>Add <code>ANTHROPIC_API_KEY</code> to <code>.env.local</code> to activate live AI responses.</p>
+                  <div className={styles.ragBadge}><span className={styles.ragDot} />8 knowledge chunks loaded</div>
+                </section>
 
-            <section className={styles.sidebarSection}>
-              <h3>Ethical Principles</h3>
-              <div className={styles.ethicsList}>
-                {[["Do No Harm","Every response checked for danger"],["Respect Autonomy","Options, never commands"],["Do Good","Information must improve safety"],["Justice","Equal service to all"],["Transparency","Honest about what this is"]].map(([title,desc]) => (
-                  <div className={styles.ethicsItem} key={title}>
-                    <strong>{title}</strong><span>{desc}</span>
+                <section className={styles.sidebarSection}>
+                  <h3>Demo Mode</h3>
+                  <p className={styles.sidebarNote}>Run a full presentation without an API key. Uses pre-written realistic responses.</p>
+                  <button className={`${styles.demoToggle} ${demoMode ? styles.demoOn : ""}`} onClick={toggleDemo}>
+                    <span className={styles.demoToggleDot} />
+                    {demoMode ? "🎭 Demo ON — click to disable" : "🔌 Demo OFF — click to enable"}
+                  </button>
+                </section>
+
+                <section className={styles.sidebarSection}>
+                  <h3>Knowledge Base</h3>
+                  <p className={styles.sidebarNote}>8 verified chunks from Uganda DV Act 2010, NGO reports, support organisation contacts.</p>
+                  <div className={styles.chunkList}>
+                    {["What is DV","Types of abuse","Who is protected","Victim rights","Reporting","Support orgs","Penalties","Myths vs facts"].map(c => (
+                      <span className={styles.chunk} key={c}>{c}</span>
+                    ))}
                   </div>
-                ))}
+                </section>
               </div>
-            </section>
+            )}
 
-            {/* Safety tools — moved from toolbar into sidebar */}
-            <section className={styles.sidebarSection}>
-              <h3>Safety Tools</h3>
-              <button className={styles.sidebarToolBtn} onClick={() => { setShowPlan(true); setSidebarOpen(false) }}>
-                📋 Safety Planning Checklist
-              </button>
-              <button className={styles.sidebarToolBtn} onClick={() => { setShowRights(true); setSidebarOpen(false) }}>
-                ⚖️ Know Your Rights Cards
-              </button>
-            </section>
+            {sidebarTab === "team" && (
+              <div className={styles.sidebarPage}>
+                <section className={styles.sidebarSection}>
+                  <h3>Tracy — AI & Chatbot</h3>
+                  <p className={styles.sidebarNote}>Claude API, trauma-informed system prompt, RAG pipeline, streaming responses.</p>
+                </section>
+
+                <section className={styles.sidebarSection}>
+                  <h3>Joseline — Knowledge Base</h3>
+                  <p className={styles.sidebarNote}>Curates and verifies the RAG knowledge base used to ground every response.</p>
+                </section>
+
+                <section className={styles.sidebarSection}>
+                  <h3>Suzan — UX & Ethics</h3>
+                  <p className={styles.sidebarNote}>Danger detection, panic button, multilingual UI (EN/LG/SW), safety plan checklist, rights cards, offline fallback, demo mode, feedback system.</p>
+                </section>
+              </div>
+            )}
+
+            {sidebarTab === "ethics" && (
+              <div className={styles.sidebarPage}>
+                <section className={styles.sidebarSection}>
+                  <h3>Ethical Principles</h3>
+                  <div className={styles.ethicsList}>
+                    {[["Do No Harm","Every response checked for danger"],["Respect Autonomy","Options, never commands"],["Do Good","Information must improve safety"],["Justice","Equal service to all"],["Transparency","Honest about what this is"]].map(([title,desc]) => (
+                      <div className={styles.ethicsItem} key={title}>
+                        <strong>{title}</strong><span>{desc}</span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              </div>
+            )}
 
             <button className={styles.clearBtn} onClick={clearChat}>{t.clearChat}</button>
           </div>
         </aside>
 
+
         {/* CHAT */}
         <div className={styles.chatCol}>
 
           <div className={styles.chatMessages} ref={chatRef}>
-            {messages.map((m, i) => (
+            {/* FIX: hide the initial welcome/greeting bubble once the user has started chatting
+                so it doesn't linger oddly above a real conversation */}
+            {messages.map((m, i) => {
+              if (i === 0 && m.role === "assistant" && userHasSent) return null
+              return (
               <div key={i} className={`${styles.msgRow} ${m.role === "user" ? styles.user : styles.bot}`}>
                 {m.role === "assistant" && <div className={styles.avatarBot}>🛡️</div>}
                 <div className={styles.bubbleWrap}>
@@ -641,7 +686,8 @@ export default function AegisApp() {
                 </div>
                 {m.role === "user" && <div className={styles.avatarUser}>👤</div>}
               </div>
-            ))}
+              )
+            })}
 
             {/* Streaming */}
             {streaming && (
@@ -668,17 +714,28 @@ export default function AegisApp() {
             )}
           </div>
 
-          {/* SUGGESTIONS — shown only when user hasn't sent anything this session */}
-          {!userHasSent.current && (
-            <div className={styles.suggestions}>
-              <p className={styles.suggLabel}>{t.suggLabel}</p>
-              <div className={styles.suggGrid}>
-                {t.suggestions.map(s => (
-                  <button key={s} className={styles.suggBtn} onClick={() => sendMessage(s)}>{s}</button>
-                ))}
+          {/* SUGGESTIONS — persistent popup button, never disappears after use */}
+          <div className={styles.suggestionsWrap}>
+            {suggestionsOpen && (
+              <div className={styles.suggPopup}>
+                <div className={styles.suggPopupHeader}>
+                  <span>{t.suggLabel}</span>
+                  <button className={styles.suggPopupClose} onClick={() => setSuggestionsOpen(false)} aria-label="Close">✕</button>
+                </div>
+                <div className={styles.suggGrid}>
+                  {t.suggestions.map(s => (
+                    <button key={s} className={styles.suggBtn} onClick={() => { sendMessage(s); setSuggestionsOpen(false) }}>{s}</button>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+            <button
+              className={`${styles.suggToggleBtn} ${suggestionsOpen ? styles.suggToggleBtnActive : ""}`}
+              onClick={() => setSuggestionsOpen(o => !o)}
+            >
+              💡 {t.suggLabel}
+            </button>
+          </div>
 
           {/* INPUT BAR */}
           <div className={styles.inputBar}>

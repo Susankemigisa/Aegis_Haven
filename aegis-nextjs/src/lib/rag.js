@@ -37,7 +37,7 @@ export async function loadKnowledgeBase() {
       } catch (_) {}
     })
   )
-  cachedKB = kb
+  if (Object.keys(kb).length > 0) cachedKB = kb
   return kb
 }
 

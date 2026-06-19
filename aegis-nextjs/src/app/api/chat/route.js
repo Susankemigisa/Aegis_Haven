@@ -19,6 +19,7 @@ function getOfflineFallback(messages) {
 }
 
 export async function POST(request) {
+  const requestClone = request.clone()
   try {
     const { messages, lang = "en" } = await request.json()
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -68,7 +69,7 @@ export async function POST(request) {
 
     const client = new Anthropic({ apiKey })
     const stream = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
       max_tokens: 2000,
       system: systemPrompt,
       messages: messages.map(m => ({ role: m.role, content: m.content })),
@@ -94,7 +95,7 @@ export async function POST(request) {
   } catch (err) {
     // Try offline fallback on any error
     try {
-      const { messages } = await request.clone().json()
+      const { messages } = await requestClone.json()
       const fallback = getOfflineFallback(messages || [])
       return new Response(fallback, { headers: { "Content-Type": "text/plain; charset=utf-8" } })
     } catch {
