@@ -1,4 +1,4 @@
-// File: C:\Users\SuzaKemigisa\aegis_haven\Aegis_Haven\aegis-nextjs\src\app\page.js
+// File: D:\aegis_haven\Aegis_Haven\aegis-nextjs\src\app\page.js
 import * as entry from '../../../src/app/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

@@ -18,33 +18,49 @@ function getOfflineFallback(messages) {
   return OFFLINE_RESPONSES.default
 }
 
+function streamText(text) {
+  const encoder = new TextEncoder()
+  const readable = new ReadableStream({
+    start(controller) {
+      const words = text.split(" ")
+      let i = 0
+      const tick = setInterval(() => {
+        if (i >= words.length) { clearInterval(tick); controller.close(); return }
+        controller.enqueue(encoder.encode((i === 0 ? "" : " ") + words[i]))
+        i++
+      }, 18)
+    },
+  })
+  return new Response(readable, { headers: { "Content-Type": "text/plain; charset=utf-8" } })
+}
+
 export async function POST(request) {
   const requestClone = request.clone()
   try {
-    const { messages, lang = "en" } = await request.json()
+    const { messages, lang = "en", demoMode = false } = await request.json()
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return Response.json({ error: "No messages provided" }, { status: 400 })
     }
 
     const apiKey = process.env.ANTHROPIC_API_KEY
 
-    // ── OFFLINE FALLBACK (Suzan Day 2) ──────────────────────────────────────
-    if (!apiKey) {
-      const fallback = getOfflineFallback(messages)
-      const encoder  = new TextEncoder()
-      const readable = new ReadableStream({
-        start(controller) {
-          // Stream word by word for natural feel
-          const words = fallback.split(" ")
-          let i = 0
-          const tick = setInterval(() => {
-            if (i >= words.length) { clearInterval(tick); controller.close(); return }
-            controller.enqueue(encoder.encode((i === 0 ? "" : " ") + words[i]))
-            i++
-          }, 18)
-        },
-      })
-      return new Response(readable, { headers: { "Content-Type": "text/plain; charset=utf-8" } })
+    // ── NO API KEY ───────────────────────────────────────────────────────────
+    // If the client has demo mode OFF and there is no API key, return a clear
+    // error so the user knows why — instead of silently serving fallback
+    // responses that look identical to a real API response.
+    if (!apiKey && !demoMode) {
+      return Response.json(
+        { error: "No API key configured. Add ANTHROPIC_API_KEY to .env.local, or enable Demo Mode in Settings." },
+        { status: 503 }
+      )
+    }
+
+    // ── DEMO / OFFLINE FALLBACK ──────────────────────────────────────────────
+    // Only reached when demoMode is explicitly true (sent by the client) and
+    // there is no API key — acts as a safety net if the client somehow calls
+    // the API route in demo mode.
+    if (!apiKey && demoMode) {
+      return streamText(getOfflineFallback(messages))
     }
 
     // ── RAG (Joseline) ───────────────────────────────────────────────────────
@@ -93,13 +109,11 @@ export async function POST(request) {
 
     return new Response(readable, { headers: { "Content-Type": "text/plain; charset=utf-8" } })
   } catch (err) {
-    // Try offline fallback on any error
+    // On unexpected errors, return a JSON error (no silent fallback)
     try {
-      const { messages } = await requestClone.json()
-      const fallback = getOfflineFallback(messages || [])
-      return new Response(fallback, { headers: { "Content-Type": "text/plain; charset=utf-8" } })
-    } catch {
       return Response.json({ error: err.message || "Internal error" }, { status: 500 })
+    } catch {
+      return Response.json({ error: "Internal error" }, { status: 500 })
     }
   }
 }
